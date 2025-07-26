@@ -1,24 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Live Message Viewer</title>
-  <style>
-    body { font-size: 24px; text-align: center; margin-top: 100px; }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Message</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <div id="message">Loading...</div>
+<body class="bg-white text-gray-800 font-sans flex items-center justify-center min-h-screen">
+
+  <div class="max-w-2xl text-center px-6 py-10 border rounded-lg shadow-md bg-gray-50">
+    <h1 class="text-3xl font-bold text-blue-600 mb-4">$OneDollarMessage</h1>
+    <p id="message-display" class="text-lg italic text-gray-700">
+      Loading latest message...
+    </p>
+    <p class="text-sm text-gray-400 mt-6">Updated every 5 seconds</p>
+  </div>
 
   <script>
-    async function refreshMessage() {
-      const res = await fetch('/message');
-      const data = await res.json();
-      document.getElementById('message').textContent = data.message || "No current message.";
+    async function fetchMessage() {
+      try {
+        const res = await fetch("/message");
+        const data = await res.json();
+        const display = document.getElementById("message-display");
+        display.textContent = data.message || "No active message.";
+      } catch (err) {
+        console.error(err);
+        document.getElementById("message-display").textContent = "Unable to load message.";
+      }
     }
 
-    refreshMessage();
-    setInterval(refreshMessage, 5000);
+    fetchMessage();
+    setInterval(fetchMessage, 5000); // Refresh every 5 seconds
   </script>
 </body>
 </html>
