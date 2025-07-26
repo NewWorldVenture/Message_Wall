@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Message Wall</title>
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+  <h1>Post Your Message</h1>
+  <form id="payment-form">
+    <label>Message:</label><br/>
+    <textarea id="message" required></textarea><br/>
+    <label>Minutes to Display:</label><br/>
+    <input type="number" id="minutes" min="1" value="1"/><br/><br/>
+    <div id="card-element"></div><br/>
+    <button type="submit">Pay & Post</button>
+  </form>
+  <div id="status"></div>
+
+  <script>
+    const stripe = Stripe("pk_test_1234567890abcdef"); // replace with your actual publishable key
+    const elements = stripe.elements();
+    const card = elements.create("card");
+    card.mount("#card-element");
+
+    document.getElementById("payment-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const { token, error } = await stripe.createToken(card);
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      const response = await fetch("/purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          message: document.getElementById("message").value,
+          minutes: document.getElementById("minutes").value
+        })
+      });
+
+      const result = await response.json();
+      document.getElementById("status").textContent = result.success ? "Message posted!" : "Error: " + result.error;
+    });
+  </script>
+</body>
+</html>

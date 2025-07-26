@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Message Viewer</title>
+  <meta http-equiv="refresh" content="5">
+  <style>
+    body { font-size: 24px; text-align: center; margin-top: 100px; }
+  </style>
+</head>
+<body>
+  <div id="message">Loading...</div>
+  <script>
+    fetch('/message')
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('message').textContent = data.message || "No current message.";
+      });
+  </script>
+</body>
+</html>
