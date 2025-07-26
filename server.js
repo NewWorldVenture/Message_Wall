@@ -4,6 +4,9 @@ const fs = require("fs");
 const path = require("path");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
+const ADMIN_USER = process.env.ADMIN_USER || "admin";
+const ADMIN_PASS = process.env.ADMIN_PASS || "letmein";
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -12,7 +15,26 @@ let currentMessage = { text: "", endTime: 0 };
 app.use(bodyParser.json());
 app.use(express.static(__dirname));
 
-// Serve public pages
+// Basic Auth Middleware
+function requireAuth(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith("Basic ")) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="Admin Area"');
+    return res.status(401).send("Authentication required.");
+  }
+
+  const base64 = auth.split(" ")[1];
+  const [user, pass] = Buffer.from(base64, "base64").toString().split(":");
+
+  if (user === ADMIN_USER && pass === ADMIN_PASS) {
+    return next();
+  }
+
+  res.setHeader("WWW-Authenticate", 'Basic realm="Admin Area"');
+  return res.status(401).send("Access denied.");
+}
+
+// Routes
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
@@ -21,11 +43,10 @@ app.get("/viewer", (req, res) => {
   res.sendFile(path.join(__dirname, "viewer.html"));
 });
 
-app.get("/admin", (req, res) => {
+app.get("/admin", requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, "admin.html"));
 });
 
-// API: Get message (viewer)
 app.get("/message", (req, res) => {
   const now = Date.now();
   if (now < currentMessage.endTime) {
@@ -35,10 +56,9 @@ app.get("/message", (req, res) => {
   }
 });
 
-// API: Purchase message display
 app.post("/purchase", async (req, res) => {
   const { token, message, minutes } = req.body;
-  const amount = minutes * 100; // $1 per minute
+  const amount = minutes * 100;
 
   try {
     await stripe.charges.create({
@@ -58,8 +78,7 @@ app.post("/purchase", async (req, res) => {
   }
 });
 
-// Admin API: Get current message and time left
-app.get("/admin-status", (req, res) => {
+app.get("/admin-status", requireAuth, (req, res) => {
   const now = Date.now();
   const timeRemaining = Math.max(currentMessage.endTime - now, 0);
   res.json({
@@ -68,13 +87,11 @@ app.get("/admin-status", (req, res) => {
   });
 });
 
-// Admin API: Clear current message
-app.post("/admin-clear", (req, res) => {
+app.post("/admin-clear", requireAuth, (req, res) => {
   currentMessage = { text: "", endTime: 0 };
   res.json({ success: true });
 });
 
-// Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
