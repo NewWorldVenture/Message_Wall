@@ -19,7 +19,7 @@
   <div id="status"></div>
 
   <script>
-    const stripe = Stripe("pk_test_51RpAkwGgxH6Dy9pRpRlQ7gtoMgzA1yoPHrgVtW8CmtAV53VwGwu6iXalSBn9QHLXOXMWX1QdoQ43vSNdas62qQ9e00KuOEMet9"); 
+    const stripe = Stripe("pk_test_REPLACE_ME"); // Replace with your actual publishable key
     const elements = stripe.elements();
     const card = elements.create("card");
     card.mount("#card-element");
