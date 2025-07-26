@@ -3,36 +3,66 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Live Message</title>
-
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Live Message Viewer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      text-align: center;
+      padding: 50px;
+    }
+    #message {
+      font-size: 2em;
+      margin-bottom: 20px;
+    }
+    #countdown {
+      font-size: 1.2em;
+      color: #555;
+    }
+  </style>
 </head>
-<body class="bg-white text-gray-800 font-sans flex items-center justify-center min-h-screen">
-
-  <div class="max-w-2xl text-center px-6 py-10 border rounded-lg shadow-md bg-gray-50">
-    <h1 class="text-3xl font-bold text-blue-600 mb-4">$OneDollarMessage</h1>
-    <p id="message-display" class="text-lg italic text-gray-700">
-      Loading latest message...
-    </p>
-    <p class="text-sm text-gray-400 mt-6">Updated every 5 seconds</p>
-  </div>
+<body>
+  <div id="message">Loading message...</div>
+  <div id="countdown"></div>
 
   <script>
     async function fetchMessage() {
-      try {
-        const res = await fetch("/message");
-        const data = await res.json();
-        const display = document.getElementById("message-display");
-        display.textContent = data.message || "No active message.";
-      } catch (err) {
-        console.error(err);
-        document.getElementById("message-display").textContent = "Unable to load message.";
+      const res = await fetch("/message");
+      const data = await res.json();
+
+      const messageEl = document.getElementById("message");
+      const countdownEl = document.getElementById("countdown");
+
+      if (data.message && data.endTime) {
+        messageEl.textContent = data.message;
+        startCountdown(data.endTime);
+      } else {
+        messageEl.textContent = "No current message.";
+        countdownEl.textContent = "";
       }
     }
 
+    function startCountdown(endTimestamp) {
+      function update() {
+        const now = Date.now();
+        const diff = Math.max(0, endTimestamp - now);
+        const minutes = Math.floor(diff / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        document.getElementById("countdown").textContent =
+          `Time left: ${minutes}m ${seconds}s`;
+
+        if (diff <= 0) {
+          clearInterval(timer);
+          fetchMessage();
+        }
+      }
+
+      update();
+      const timer = setInterval(update, 1000);
+    }
+
     fetchMessage();
-    setInterval(fetchMessage, 5000); // Refresh every 5 seconds
+    setInterval(fetchMessage, 5000);
   </script>
 </body>
 </html>
