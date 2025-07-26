@@ -4,16 +4,13 @@ const fs = require("fs");
 const path = require("path");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
-const ADMIN_USER = process.env.ADMIN_USER || "admin";
-const ADMIN_PASS = process.env.ADMIN_PASS || "letmein";
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 let currentMessage = { text: "", endTime: 0 };
 
-app.use(bodyParser.json());
-app.use(express.static(__dirname));
+const ADMIN_USER = process.env.ADMIN_USER || "admin";
+const ADMIN_PASS = process.env.ADMIN_PASS || "letmein";
 
 // Basic Auth Middleware
 function requireAuth(req, res, next) {
@@ -34,7 +31,9 @@ function requireAuth(req, res, next) {
   return res.status(401).send("Access denied.");
 }
 
-// Routes
+app.use(bodyParser.json());
+app.use(express.static(__dirname));
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
@@ -45,37 +44,6 @@ app.get("/viewer", (req, res) => {
 
 app.get("/admin", requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, "admin.html"));
-});
-
-app.get("/message", (req, res) => {
-  const now = Date.now();
-  if (now < currentMessage.endTime) {
-    res.json({ message: currentMessage.text });
-  } else {
-    res.json({ message: "" });
-  }
-});
-
-app.post("/purchase", async (req, res) => {
-  const { token, message, minutes } = req.body;
-  const amount = minutes * 100;
-
-  try {
-    await stripe.charges.create({
-      amount,
-      currency: "usd",
-      source: token.id,
-      description: "Message Wall Post",
-    });
-
-    currentMessage.text = message;
-    currentMessage.endTime = Date.now() + minutes * 60000;
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error("Stripe error:", error);
-    res.status(500).json({ success: false, error: error.message });
-  }
 });
 
 app.get("/admin-status", requireAuth, (req, res) => {
@@ -90,6 +58,39 @@ app.get("/admin-status", requireAuth, (req, res) => {
 app.post("/admin-clear", requireAuth, (req, res) => {
   currentMessage = { text: "", endTime: 0 };
   res.json({ success: true });
+});
+
+app.get("/message", (req, res) => {
+  const now = Date.now();
+  if (now < currentMessage.endTime) {
+    res.json({
+      message: currentMessage.text,
+      endTime: currentMessage.endTime
+    });
+  } else {
+    res.json({ message: "" });
+  }
+});
+
+app.post("/purchase", async (req, res) => {
+  const { token, message, minutes } = req.body;
+  const amount = minutes * 100; // $1 per minute
+
+  try {
+    await stripe.charges.create({
+      amount,
+      currency: "usd",
+      source: token.id,
+      description: "Message Wall Post",
+    });
+
+    currentMessage.text = message;
+    currentMessage.endTime = Date.now() + minutes * 60000;
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 app.listen(PORT, () => {
