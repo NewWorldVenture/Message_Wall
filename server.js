@@ -12,6 +12,7 @@ let currentMessage = { text: "", endTime: 0 };
 app.use(bodyParser.json());
 app.use(express.static(__dirname));
 
+// Serve public pages
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
@@ -20,6 +21,11 @@ app.get("/viewer", (req, res) => {
   res.sendFile(path.join(__dirname, "viewer.html"));
 });
 
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "admin.html"));
+});
+
+// API: Get message (viewer)
 app.get("/message", (req, res) => {
   const now = Date.now();
   if (now < currentMessage.endTime) {
@@ -29,6 +35,7 @@ app.get("/message", (req, res) => {
   }
 });
 
+// API: Purchase message display
 app.post("/purchase", async (req, res) => {
   const { token, message, minutes } = req.body;
   const amount = minutes * 100; // $1 per minute
@@ -43,13 +50,31 @@ app.post("/purchase", async (req, res) => {
 
     currentMessage.text = message;
     currentMessage.endTime = Date.now() + minutes * 60000;
+
     res.json({ success: true });
   } catch (error) {
-    console.error(error);
+    console.error("Stripe error:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
+// Admin API: Get current message and time left
+app.get("/admin-status", (req, res) => {
+  const now = Date.now();
+  const timeRemaining = Math.max(currentMessage.endTime - now, 0);
+  res.json({
+    message: currentMessage.text,
+    timeRemaining,
+  });
+});
+
+// Admin API: Clear current message
+app.post("/admin-clear", (req, res) => {
+  currentMessage = { text: "", endTime: 0 };
+  res.json({ success: true });
+});
+
+// Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

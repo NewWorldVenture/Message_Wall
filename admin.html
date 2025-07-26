@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin - Message Wall</title>
+</head>
+<body>
+  <h1>Admin Panel</h1>
+  <div>
+    <p><strong>Current Message:</strong> <span id="current-message">Loading...</span></p>
+    <p><strong>Time Remaining:</strong> <span id="time-left">Calculating...</span></p>
+    <button id="clear-btn">Clear Message</button>
+  </div>
+
+  <script>
+    async function loadMessage() {
+      const response = await fetch('/admin-status');
+      const data = await response.json();
+
+      document.getElementById("current-message").textContent = data.message || "(none)";
+      if (data.timeRemaining > 0) {
+        document.getElementById("time-left").textContent = `${Math.ceil(data.timeRemaining / 1000)} seconds`;
+      } else {
+        document.getElementById("time-left").textContent = "0 (expired)";
+      }
+    }
+
+    async function clearMessage() {
+      await fetch('/admin-clear', { method: 'POST' });
+      loadMessage();
+    }
+
+    document.getElementById("clear-btn").addEventListener("click", clearMessage);
+    loadMessage();
+    setInterval(loadMessage, 1000);
+  </script>
+</body>
+</html>
