@@ -3,37 +3,41 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin - Message Wall</title>
+  <title>Admin Dashboard</title>
+  <style>
+    body { font-family: sans-serif; background: #f4f4f4; text-align: center; padding: 50px; }
+    h1 { color: #333; }
+    #message { font-size: 1.5em; margin-top: 20px; }
+    button { padding: 10px 20px; font-size: 1em; margin-top: 20px; }
+  </style>
 </head>
 <body>
   <h1>Admin Panel</h1>
-  <div>
-    <p><strong>Current Message:</strong> <span id="current-message">Loading...</span></p>
-    <p><strong>Time Remaining:</strong> <span id="time-left">Calculating...</span></p>
-    <button id="clear-btn">Clear Message</button>
-  </div>
+  <div id="message">Loading message...</div>
+  <div id="time"></div>
+  <button onclick="clearMessage()">Clear Message</button>
 
   <script>
-    async function loadMessage() {
-      const response = await fetch('/admin-status');
-      const data = await response.json();
-
-      document.getElementById("current-message").textContent = data.message || "(none)";
-      if (data.timeRemaining > 0) {
-        document.getElementById("time-left").textContent = `${Math.ceil(data.timeRemaining / 1000)} seconds`;
-      } else {
-        document.getElementById("time-left").textContent = "0 (expired)";
+    async function fetchStatus() {
+      const res = await fetch("/admin-status");
+      const data = await res.json();
+      document.getElementById("message").textContent = data.message || "No current message.";
+      if (data.timeRemaining) {
+        document.getElementById("time").textContent = "Time left: " + Math.floor(data.timeRemaining / 1000) + "s";
       }
     }
 
     async function clearMessage() {
-      await fetch('/admin-clear', { method: 'POST' });
-      loadMessage();
+      const res = await fetch("/admin-clear", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        alert("Message cleared.");
+        fetchStatus();
+      }
     }
 
-    document.getElementById("clear-btn").addEventListener("click", clearMessage);
-    loadMessage();
-    setInterval(loadMessage, 1000);
+    fetchStatus();
+    setInterval(fetchStatus, 5000);
   </script>
 </body>
 </html>
